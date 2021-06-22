@@ -23,26 +23,35 @@ function outputMessages(lowerBound, upperBound, outputDetails) {
     return messages
 }
 
-app.listen(port, hostname, () => {
-    console.log(`Running at http://${hostname}:${port}/`)
-    let outputMessage = [];
+async function retry(endpoint) {
+    try {
+        return await fetch(endpoint);
+    } catch {
+        try {
+            return await fetch(endpoint);
+        } catch {
+            try {
+                return await fetch(endpoint);
+            } catch {
+                throw new Error('Failed retrying 3 times');
+            }
+        }
+    }
+}
 
-    Promise.all([fetch(bounds_endpoint), fetch(outputs_endpoint)])
-        .then(async ([resBounds, resOutputs]) => {
-            const boundsJson = await resBounds.json()
-            const outputsJson = await resOutputs.json()
-            return [boundsJson, outputsJson]
-        })
-        .then(([boundsJson, outputsJson]) => {
-            let lowerBound = boundsJson['lower'];
-            let upperBound = boundsJson['upper'];
-            let outputDetails = outputsJson['outputDetails'];
+(async function() {
+    await app.listen(port, hostname, () => {
+        console.log(`Running at http://${hostname}:${port}/`)
+    });
+    const resBounds = await retry(bounds_endpoint);
+    const resOutputs = await retry(outputs_endpoint);
+    const boundsJson = await resBounds.json()
+    const outputsJson = await resOutputs.json();
+    let lowerBound = boundsJson['lower'];
+    let upperBound = boundsJson['upper'];
+    let outputDetails = outputsJson['outputDetails'];
+    messages = outputMessages(lowerBound, upperBound, outputDetails);
+    messages.forEach(message => console.log(message));
+})();
 
-            console.log(boundsJson)
-            console.log(outputsJson)
-            messages = outputMessages(lowerBound, upperBound, outputDetails);
-            messages.forEach(message => console.log(message));
-        })
-
-})
 
