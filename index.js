@@ -23,20 +23,14 @@ function outputMessages(lowerBound, upperBound, outputDetails) {
     return messages
 }
 
-async function retry(endpoint) {
-    try {
-        return await fetch(endpoint);
-    } catch {
+async function retry(endpoint, n=10) {
+    for (let i = 0; i < n; i++) {
         try {
             return await fetch(endpoint);
-        } catch {
-            try {
-                return await fetch(endpoint);
-            } catch {
-                throw new Error('Failed retrying 3 times');
-            }
-        }
+        } catch {}
     }
+
+    throw new Error(`Failed retrying ${n} times`);
 }
 
 (async function() {
